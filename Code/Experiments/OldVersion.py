@@ -3800,3 +3800,37 @@ def testtttt():
     v9, w9 = np.linalg.eig(np.matrix(a4))
     v10, w10 = np.linalg.eig(np.matrix(a4))
     v11, w11 = np.linalg.eig(np.matrix(a4))
+
+
+
+def convert_gml_txt(datadir,graphNames):
+    for graphname in graphNames:
+        with open(datadir + "dataset/" + graphname + ".txt", 'w') as text_file:
+            G = nx.read_gml(datadir + "dataset/gml/" + graphname + ".gml")
+            matrix = nx.adjacency_matrix(G)
+            A = matrix.toarray()
+            for item in G.edges():
+                text_file.write(str(item[0])+"\t" +str(item[1])+"\n")
+    return 0
+
+
+
+def get_laplacian_matrix(datadir, graphNames):
+    for graphname in graphNames:
+        outfile= datadir +"laplace/"+ graphname + "laplace.txt"
+        G = nx.read_edgelist(datadir+"dataset/" + graphname + ".txt")
+        L= nx.laplacian_matrix(G, nodelist=None, weight='weight')
+        A= L.toarray()
+        N= np.matrix(A)
+        np.savetxt(outfile, N, fmt='%d')
+    return 0
+
+def get_adjacency_matrix(datadir, graphNames):
+    for graphname in graphNames:
+        outfile= datadir +"adjacency/"+ graphname + ".txt"
+        G = nx.read_edgelist(datadir+"dataset/" + graphname + ".txt")
+        matrix = nx.adjacency_matrix(G)
+        A = matrix.toarray()
+        N = np.matrix(A)
+        np.savetxt(outfile, N, fmt='%d')
+    return 0
