@@ -53,7 +53,14 @@ def EigenTotal(G, ep = 0.001, dir = ""):
     return obj.vals, obj.vecs
 
 
-
+#asymmetric
+def EigenAsym():
+    obj = EigenPair()
+    ep = 0.0001
+    A = np.random.uniform(-1, 1, size * size).reshape(size, size)
+    matrix = np.matrix(A)
+    obj.update_parameters(matrix, isMatrix=True, isSymmetric=False, isDynamic=True)
+    obj.eigen_pairs(ep)
 
 
 if __name__ == '__main__':
