@@ -178,6 +178,21 @@ class EigenPair(object):
             w2.append(l)
         return v1, w2
 
+        ##sort calculared eigens
+
+    def sort_eigens2(self, v1, w1):
+        dic = dict(zip(v1, range(len(v1))))
+        v1 = sorted(v1, reverse=True)
+        w2 = []
+        for i in range(len(v1)):
+            l = w1[:, dic[v1[i]]]
+            #l = l[:, 0]
+            l = l.flatten()
+            l = l.tolist()
+            #l = l[0]
+            w2.append(l)
+        return v1, w2
+
     ## generating a vector of co-prime numbers
     def first_n_Primes(self, n):
         number_under_test = 4
@@ -213,10 +228,10 @@ class EigenPair(object):
         return output
 
     ## generate eigenpairs of any kind
-    def eigen_pairs(self, ep):
+    def eigen_pairs(self, ep, isbasic=False):
         start = time.clock()
         if self.isSymmetric:
-            vals, vecs = self.distinct_eigen_pairs(self.A, self.maximum, self.minimum, ep)
+            vals, vecs = self.distinct_eigen_pairs(self.A, self.maximum, self.minimum, ep, isbasic)
         else:
             vals, vecs = self.distinct_eigen_pairs_asym2( ep)
         self.distinctVals = vals
@@ -237,7 +252,7 @@ class EigenPair(object):
         self.time = time.clock() - start
 
     ## find distinct eigenn pairs
-    def distinct_eigen_pairs(self, A, max1, min1, ep, k=-1):
+    def distinct_eigen_pairs(self, A, max1, min1, ep, isbasic , k=-1):
         if k ==-1: k = self.dimension
         max1 += 0.5
         eigenvalues = []
@@ -259,11 +274,14 @@ class EigenPair(object):
             value = max1 - (ep)
             if ((r2 > r3 and r2 > r1)):
                 isEigen = True
-                flag, result21 = self.verifyEigens(A, max1, ep)
-                if flag:
-                    eigval, eigvec = self.compute_eigenvec(result2, result21, A, max1)
-                    eigenvalues.append(eigval)
-                    eigenvectors.append(eigvec)
+                if isbasic:
+                    eigenvalues.append(max1)
+                else:
+                    flag, result21 = self.verifyEigens(A, max1, ep)
+                    if flag:
+                        eigval, eigvec = self.compute_eigenvec(result2, result21, A, max1)
+                        eigenvalues.append(eigval)
+                        eigenvectors.append(eigvec)
             if isEigen:
                 isEigen = False
             if max1 < min1 - 1 or len(eigenvalues) >= k:
@@ -721,7 +739,7 @@ class EigenPair(object):
             B = np.random.uniform(0, ep2, self.dimension * self.dimension).reshape(self.dimension, self.dimension)
             A = A + B
             matrix = np.matrix(A)
-            vals, vecs = self.distinct_eigen_pairs(matrix, self.maximum, self.minimum, ep)
+            vals, vecs = self.distinct_eigen_pairs(matrix, self.maximum, self.minimum, ep, isbasic=False)
             if len(vals) > len(output):
                 for item in dis_vals:
                     vals, y = self.find_closest_eigen(vals, item, 2)
@@ -2131,8 +2149,8 @@ class EigenPair(object):
     def divideConqure(self, T, k, bool1, ep):
         n = len(T)
         if n > k:
-            n1 = n / 2
-            n2 = n - n1 - 1
+            n1 = int(n / 2)
+            n2 = int(n - n1 - 1)
             T1 = np.zeros(shape=(n1, n1))
             T2 = np.zeros(shape=(n2, n2))
             for i in range(n1):
