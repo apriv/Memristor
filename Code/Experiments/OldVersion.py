@@ -156,7 +156,7 @@ class EigenPair(object):
         intervals.sort(key=lambda tup: tup[0])
 
         result = [intervals[0]]
-        for i in range(1, len(intervals)):
+        for i in xrange(1, len(intervals)):
             prev, current = result[-1], intervals[i]
             if current[0] <= prev[1]:
                 result[-1] = (prev[0], max(prev[1], current[1]), True)
@@ -169,7 +169,7 @@ class EigenPair(object):
         dic = dict(zip(v1, range(len(v1))))
         v1 = sorted(v1, reverse=True)
         w2=[]
-        for i in range(len(v1)):
+        for i in xrange(len(v1)):
             l = w1[:, dic[v1[i]]]
             l = l[:, 0]
             l = l.flatten()
@@ -202,7 +202,7 @@ class EigenPair(object):
     ## generate a perpendicular vector to vec
     def perpendicular(self, vec):
         output = []
-        l = int(len(vec) / 2)
+        l = len(vec) / 2
         for i in range(l):
             x1 = vec[2 * i]
             x2 = vec[2 * i + 1]
@@ -212,15 +212,20 @@ class EigenPair(object):
             output.append(0)
         return output
 
+
+    ## find distinct eigenn pairs
+
     ## generate eigenpairs of any kind
-    def eigen_pairs(self, ep):
+    def eigen_pairs(self, ep, k=-1):
         start = time.clock()
         if self.isSymmetric:
-            vals, vecs = self.distinct_eigen_pairs(self.A, self.maximum, self.minimum, ep)
+            vals, vecs = self.distinct_eigen_pairs(self.A, self.maximum, self.minimum, ep,k)
         else:
             vals, vecs = self.distinct_eigen_pairs_asym2( ep)
         self.distinctVals = vals
         self.distinctVecs = vecs
+        self.vals = vals
+        self.vecs = vecs
         #self.repeating_eigen_pairs(ep)
         self.time = time.clock() - start
 
@@ -244,6 +249,9 @@ class EigenPair(object):
         eigenvectors = []
         isEigen = False
         counter = 1
+        counter2 = 1
+        counter3 = 1
+
         value = max1
         r2 = -1
         r3 = -1
@@ -258,9 +266,11 @@ class EigenPair(object):
             r3 = self.find_max(result3)
             value = max1 - (ep)
             if ((r2 > r3 and r2 > r1)):
+                counter2 +=1
                 isEigen = True
                 flag, result21 = self.verifyEigens(A, max1, ep)
                 if flag:
+                    counter3 += 1
                     eigval, eigvec = self.compute_eigenvec(result2, result21, A, max1)
                     eigenvalues.append(eigval)
                     eigenvectors.append(eigvec)
@@ -269,6 +279,10 @@ class EigenPair(object):
             if max1 < min1 - 1 or len(eigenvalues) >= k:
                 break
             if self.isDynamic: ep = self.compute_delta(r1, r2, r3, ep)
+        print ("counter1" + str(counter))
+        print ("counter2" + str(counter2))
+        print ("counter3" + str(counter3))
+
         return eigenvalues, eigenvectors
 
     # find distinct eigenn pairs asym
@@ -311,7 +325,7 @@ class EigenPair(object):
                     isEigen = False
                 if len(eigenvalues) >= k:
                     flagg = False
-                #if self.isDynamic: ep = self.compute_delta(r1, r2, r3, ep)
+                if self.isDynamic: ep = self.compute_delta(r1, r2, r3, ep)
         return eigenvalues, eigenvectors
 
     def distinct_eigen_pairs_asym2(self, ep, isDynamic=True):
@@ -615,7 +629,7 @@ class EigenPair(object):
     ## compute step size
     def compute_delta(self, r1, r2, r3, ep):
         min1 = 0.001
-        max1 = 0.1
+        max1 = 1
         s1 = abs(float(r2 - r1) / ep)
         s2 = abs(float(r2 - r3) / ep)
         s3 = s1 / s2
@@ -1046,6 +1060,27 @@ class EigenPair(object):
             self.totalErrors.update({str(j): totalError})
             j += 1
 
+
+    def evaluate100(self, ep):
+       # percent = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+       # j = 0
+        #for item in percent:
+       realVals = []
+       appVals = []
+       appVecs = []
+       l = 100
+       for i in range(len(self.vals)):
+           appVals.append(self.vals[i])
+           appVecs.append(self.vecs[i])
+       for i in range(len(self.realVals)):
+           realVals.append(self.realVals[i])
+       per, vecError, valError, totalError = self.evaluate2(ep, realVals, appVals, appVecs)
+       self.percents.update({str(0): per})
+       self.vecErrors.update({str(0): vecError})
+       self.valErrors.update({str(0): valError})
+       self.totalErrors.update({str(0): totalError})
+
+
     def evaluatePercentsDistinct(self, ep):
         percent = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
         j = 0
@@ -1096,9 +1131,9 @@ class EigenPair(object):
 
 
 
-    def log2(self, dir, ep):
+    def log2(self, datadir, graphname, ep):
         self.evaluatePercents(ep)
-        with open(dir + "(" + str(ep) + ")" + "resultdynamiceps.csv", 'wb') as csvfile:
+        with open(datadir + "output/" + graphname + "(" + str(ep) + ")" + "resultdynamiceps.csv", 'wb') as csvfile:
             fieldnames = ["name"]
             for i in range(self.dimension):
                 fieldnames.append(str(i))
@@ -1138,6 +1173,52 @@ class EigenPair(object):
             writer.writerow(dict6)
             writer.writerow(dict7)
             writer.writerow(dict8)
+
+
+    #100
+    def log3(self, datadir, graphname, ep):
+        self.evaluate100(ep)
+        with open(datadir + "output/" + graphname + "(" + str(ep) + ")" + "resultdynamiceps100ta.csv", 'wb') as csvfile:
+            fieldnames = ["name"]
+            for i in range(self.dimension):
+                fieldnames.append(str(i))
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            dict0 = {"name": "realval"}
+            dict1 = {"name": "realvec"}
+            dict2 = {"name": "appval"}
+            dict3 = {"name": "appvec"}
+            dict4 = {"name": "percents"}
+            dict5 = {"name": "valErros"}
+            dict6 = {"name": "vecErrors"}
+            dict7 = {"name": "totalErrors"}
+            dict8 = {"name": "time"}
+
+            for i in range(len(self.realVals)):
+                dict0.update({str(i): self.realVals[i]})
+                dict1.update({str(i): self.realVecs[i]})
+            for i in range(len(self.vals)):
+                dict2.update({str(i): self.vals[i]})
+                dict3.update({str(i): self.vecs[i]})
+            dict4.update(self.percents)
+            dict5.update(self.valErrors)
+            dict6.update(self.vecErrors)
+            dict7.update(self.totalErrors)
+            dict8.update({'0': self.time})
+            writer.writerow(dict0)
+            writer.writerow(dict1)
+            writer.writerow(dict2)
+            writer.writerow(dict3)
+            writer.writerow(
+                {"name": "percents", '0': "5", '1': "10", '2': "15", '3': "20", '4': "25", '5': "30", '6': "35",
+                 '7': "40", '8': "45", '9': "50", '10': "55", '11': "60", '12': "65", '13': "70", '14': "75",
+                 '15': "80", '16': "85", '17': "90", '18': "95", '19': "100"})
+            writer.writerow(dict4)
+            writer.writerow(dict5)
+            writer.writerow(dict6)
+            writer.writerow(dict7)
+            writer.writerow(dict8)
+
 
     def log_distinct(self, datadir, graphname, ep):
         self.evaluatePercents(ep)
@@ -2456,3 +2537,1300 @@ class EigenPair(object):
             Q = np.dot(Q, Q_cnt.T)
 
         return (Q, R)
+
+    ## a function that computes all (final)
+    def eigs(self, G, isDynamic=True, isSymmetric=True, isDQ=False, numDQ=10, ep=0.001, n=0):
+        if isSymmetric:
+            if n == 0:
+                self.update_parameters(G)
+                if isDQ:
+                    self.eigen_pairs_divideConqure(ep, numDQ, True)
+                else:
+                    if isDynamic:
+                        self.eigen_pairs_dynamic(ep)
+                    else:
+                        self.eigen_pairs(ep)
+                self.evaluate(ep)
+            else:
+                self.update_parameters(G)
+                if isDQ:
+                    self.eigen_pairs_divideConqure(ep, numDQ, True)
+                else:
+                    if isDynamic:
+                        self.eigen_pairs_dynamic(ep)
+                    else:
+                        self.eigen_pairs(ep)
+                self.evaluate(ep)
+        else:
+            self.update_parameters(G, isSymmetric=False)
+            if n == 0:
+                if isDQ:
+                    self.eigen_pairs_divideConqure(ep, numDQ, True)
+                else:
+                    if isDynamic:
+                        self.eigen_pairs_dynamic(ep)
+                    else:
+                        self.eigen_pairs(ep, isSymmetric=False)
+                self.evaluate(ep)
+            else:
+                self.update_parameters(G)
+                if isDQ:
+                    self.eigen_pairs_divideConqure(ep, numDQ, True)
+                else:
+                    if isDynamic:
+                        self.eigen_pairs_dynamic(ep)
+                    else:
+                        self.eigen_pairs(ep)
+                self.evaluate(ep)
+
+
+
+
+
+class Cluster(object):
+    '''
+    A set of points and their centroid
+    '''
+
+    def __init__(self, points):
+        '''
+        points - A list of point objects
+        '''
+
+        if len(points) == 0:
+            raise Exception("ERROR: empty cluster")
+
+        # The points that belong to this cluster
+        self.points = points
+
+        # The dimensionality of the points in this cluster
+        #self.n = points[0].n
+        self.n = len(points)
+
+        # Assert that all points are of the same dimensionality
+        for p in points:
+            if p.n != self.n:
+                raise Exception("ERROR: inconsistent dimensions")
+
+        # Set up the initial centroid (this is usually based off one point)
+        self.centroid = self.calculateCentroid()
+
+    def __repr__(self):
+        '''
+        String representation of this object
+        '''
+        return str(self.points)
+
+    def update(self, points):
+        '''
+        Returns the distance between the previous centroid and the new after
+        recalculating and storing the new centroid.
+        Note: Initially we expect centroids to shift around a lot and then
+        gradually settle down.
+        '''
+        old_centroid = self.centroid
+        self.points = points
+        self.centroid = self.calculateCentroid()
+        shift = getDistance(old_centroid, self.centroid)
+        return shift
+
+    def calculateCentroid(self):
+        '''
+        Finds a virtual center point for a group of n-dimensional points
+        '''
+        numPoints = len(self.points)
+        # Get a list of all coordinates in this cluster
+        coords = [p.coords for p in self.points]
+        # Reformat that so all x's are together, all y'z etc.
+        unzipped = zip(*coords)
+        # Calculate the mean for each dimension
+        centroid_coords = [math.fsum(dList)/numPoints for dList in unzipped]
+
+        return Point(centroid_coords)
+
+def find_Distance(v):
+    min=10000000
+    for i in range(1,len(v)):
+        first = v[i-1]
+        second = v[i]
+        dist= first-second
+        if first!=second:
+            if abs(dist)<min:
+                min=abs(dist)
+   # min = math.ceil(min * 100) / 100
+    min= round(min,10)
+    if min<0.001:
+        min=0.001
+    return min
+
+def randgen (size):
+    obj = EigenPair()
+    ep = 0.0001
+    datadir = "/../"
+    f = open(datadir + "dataset/" + "random "+size + ".txt", 'w')
+    A = np.random.uniform(-1, 1, size * size).reshape(size,size)
+    matrix = np.matrix(A)
+    obj.update_parameters(matrix,isMatrix=true)
+    obj.eigen_pairs(ep)
+    obj.evaluate(ep)
+    obj.log2(datadir, str(size), ep)
+
+def spectral_Clustering(datadir, graphname, k):
+    ep =0.0001
+    from scipy.sparse import csgraph
+    #for graphname in graphNames:
+    with open(datadir + "output/" + graphname + "(" + str(k) + ")" +"outputClustering.csv", 'wb') as csvfile:
+        fieldnames = ['adjusted_rand_score', 'adjusted_mutual_info_score', 'homogeneity_score',
+                      'v_measure_score', 'fowlkes_mallows_score', 'normalized_mutual_info_score', 'f1_score']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        obj = EigenPair()
+        G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+        matrix = nx.adjacency_matrix(G)
+        A = matrix.toarray()
+        graph = csgraph.laplacian(A, normed=False)
+        A = obj.update_parameters(graph,isMatrix=False)
+        # obj.eigen_pairs_dynamic(ep)
+        vals, vecs = obj.distinct_eigen_pairs(obj.A, obj.maximum, obj.minimum, ep, k)
+
+        list1 = []
+        for i in range(k):
+            temp =[x.real for x in obj.realVecs[i]]
+            list1.append(temp)
+        new_matrix = np.matrix(list1)
+        new_matrix = new_matrix.transpose()
+        new_matrix2 = np.matrix(vecs)
+        new_matrix2 = new_matrix2.transpose()
+
+        FirstCluster = K_means2(new_matrix, k)  # , 0.2)
+        FirstClusterrrrr = K_means2(new_matrix, k)  # , 0.2)
+        # FirstCluster2 = K_means(eigenVectors11)
+        SecondCluster = K_means2(np.array(new_matrix2), k)  # , 0.2)
+        result = clustering_evaluation(FirstCluster, SecondCluster)
+        # result2 = clustering_evaluation(FirstCluster2, SecondCluster)
+        writer.writerow({'adjusted_rand_score': result[0], 'adjusted_mutual_info_score': result[1],
+                         'homogeneity_score': result[2], 'v_measure_score': result[3],
+                         'fowlkes_mallows_score': result[4], 'normalized_mutual_info_score': result[5],
+                         'f1_score': result[6]})
+
+def PCA(datadir,graphname,k):
+    with open(datadir + "output/" + graphname+"("+str(k)+")" + "PCA.csv", 'wb') as csvfile:
+        fieldnames = ["name", "result"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+        # G = nx.read_gml(datadir+"dataset/gml/" + graphname + ".gml")
+
+        matrix = nx.adjacency_matrix(G)
+        A = matrix.toarray()
+
+        # 1. Taking the whole dataset ignoring the class labels
+        matrix = np.matrix(A)
+
+        # 2. Computing the d-dimensional mean vector
+        mean_vector = []
+        n = len(G.nodes())
+        for i in range(n):
+            mean_x = np.mean(matrix[0, :])
+            mean_vector.append(mean_x)
+
+        # 3. a) Computing the Scatter Matrix
+        scatter_matrix = np.zeros((n, n))
+        for i in range(matrix.shape[1]):
+            x = matrix[:, i]
+            y = matrix[:, i].reshape(n, 1)
+            scatter_matrix += (matrix[:, i].reshape(n, 1) - mean_vector).dot(
+                (matrix[:, i].reshape(n, 1) - mean_vector).T)
+
+        # 3. b) Computing the Covariance Matrix (alternatively to the scatter matrix)
+        cov_list = []
+        for i in range(n):
+            cov_list.append(A[i, :])
+        cov_mat = np.cov(cov_list)
+        #####
+
+        # 4. Computing eigenvectors and corresponding eigenvalues
+        # eigenvectors and eigenvalues for the from the scatter matrix
+        # eig_val_sc, eig_vec_sc = np.linalg.eig(cov_mat)
+        #####
+
+        obj = EigenPair()
+        obj.update_parameters(cov_mat,isMatrix=True)
+        # eigenvectors and eigenvalues for the from the covariance matrix
+        eig_val_cov = obj.realVals
+        eig_vec_cov = obj.realVecs
+        eig_val_sweep, eig_vec_sweep = obj.distinct_eigen_pairs(cov_mat, obj.maximum, obj.minimum, 0.001, k)
+        percent, vecError, valError, totalError = obj.evaluate2(0.001, obj.realVals, eig_val_sweep, eig_vec_sweep)
+
+        #####
+        # max = eig_val_cov[0]
+        # min = eig_val_cov[len(eig_val_cov) - 1]
+        # ep = find_Distance(eig_val_cov)
+        # eig_val_sweep, eig_vec_sweep, eig_vec_cov = eigen_computation2(cov_mat, k, ep, max, min)
+
+        # eig_val_sweep, eig_vec_sweep = eigen_computation(cov_mat, k, ep, max, min)
+
+        list1 = []
+        for i in range(k):
+            temp = [x.real for x in obj.realVecs[i]]
+            list1.append(temp)
+        new_matrix = np.matrix(list1)
+        new_matrix = new_matrix.transpose()
+        new_matrix2 = np.matrix(eig_vec_sweep)
+        new_matrix2 = new_matrix2.transpose()
+
+        eig_vec_sweep = np.array(new_matrix2)
+        eig_vec_cov = np.array(new_matrix)
+        eig_val_sweep = np.array(eig_val_sweep)
+        eig_val_cov = np.array(eig_val_cov)
+
+        # for i in range(len(eig_val_sc)):
+        #   eigvec_sc = eig_vec_sc[:, i].reshape(1, n).T
+        #  eigvec_cov = eig_vec_cov[:, i].reshape(1, n).T
+        # #assert eigvec_sc.all() == eigvec_cov.all(), 'Eigenvectors are not identical'
+
+        # 5.1. Sorting the eigenvectors by decreasing eigenvalues
+        # for ev in eig_vec_sc:
+        #    npt.assert_array_almost_equal(1.0, np.linalg.norm(ev))
+        # Make a list of (eigenvalue, eigenvector) tuples
+        eig_pairs = [(np.abs(eig_val_cov[i]), eig_vec_cov[:, i]) for i in range(len(eig_val_sweep))]
+        ######
+        # eig_pairs2 = [(np.abs(eig_val_sweep[i]), eig_vec_sweep[:, i]) for i in range(len(eig_vec_sweep))]
+        # x= np.abs(eig_val_sweep[0])
+        # y=eig_vec_sweep2[0]
+        eig_pairs3 = [(np.abs(eig_val_sweep[i]), eig_vec_sweep[:, i]) for i in range(len(eig_val_sweep))]
+
+        # Sort the (eigenvalue, eigenvector) tuples from high to low
+        eig_pairs.sort(key=lambda x: x[0], reverse=True)
+        ####3
+        # eig_pairs2.sort(key=lambda x: x[0], reverse=True)
+        eig_pairs3.sort(key=lambda x: x[0], reverse=True)
+
+        # 5.2. Choosing k eigenvectors with the largest eigenvalues
+        tup = ()
+        ##
+        tup2 = ()
+        tup3 = ()
+        for i in range(k):
+            tup = tup + (eig_pairs[i][1].reshape(n, 1),)
+            # tup2 = tup2 + (eig_pairs2[i][1].reshape(n, 1),)
+            tup3 = tup3 + (eig_pairs3[i][1].reshape(n, 1),)
+
+        matrix_w = np.hstack(tup)
+        ###
+        # matrix_w2 = np.hstack(tup2)
+        matrix_w3 = np.hstack(tup3)
+
+        # 6. Transforming the samples onto the new subspace
+        transformed = matrix_w.T.dot(matrix)
+        # transformed2 = matrix_w2.T.dot(matrix)
+        transformed3 = matrix_w3.T.dot(matrix)
+
+
+
+        ###############
+        out1 = 0
+        out2 = 0
+        out3 = 0
+        out4 = 0
+        out5 = 0
+        out6 = 0
+        out7 = 0
+        for i in range(0, k - 1):
+            M1 = np.array(transformed[i]).flatten()
+            # M2=np.array(transformed2[i]).flatten()
+            M3 = np.array(transformed3[i]).flatten()
+            M = np.array([M1, M3])
+            # M2 = np.array([M1, M3])
+            similarities = cosine_similarity(M)
+            similarities2 = pairwise_distances(M)
+            # similarities2 = cosine_similarity(M2)
+
+            similarities3 = manhattan_distances(M)
+            similarities4 = euclidean_distances(M)
+            out1 += abs(similarities[0][1])
+            out2 += abs(similarities2[0][1])
+            out3 += abs(similarities3[0][1])
+            out4 += abs(similarities4[0][1])
+        out1 = out1 / k
+        out2 = out2 / k
+        out3 = out3 / k
+        out4 = out4 / k
+
+        writer.writerow({'name': cosine_similarity, 'result': str(out1)})
+        writer.writerow({'name': pairwise_distances, 'result': str(out2)})
+        writer.writerow({'name': manhattan_distances, 'result': str(out3)})
+        writer.writerow({'name': euclidean_distances, 'result': str(out4)})
+        writer.writerow({'name': valError, 'result': str(valError)})
+        writer.writerow({'name': vecError, 'result': str(vecError)})
+        writer.writerow({'name': totalError, 'result': str(totalError)})
+
+def conditionNumber(datadir,graphname):
+    with open(datadir + "output/" + graphname + "conditionNumber.csv", 'wb') as csvfile:
+        fieldnames = ["name", "result"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        obj = EigenPair()
+        G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+        matrix = nx.adjacency_matrix(G)
+        A = matrix.toarray()
+        B = np.negative(A)
+        #graph = csgraph.laplacian(A, normed=False)
+        #A =
+        obj.update_parameters(A,isMatrix=True)
+        # obj.eigen_pairs_dynamic(ep)
+        vals1, vecs1= obj.distinct_eigen_pairs(A, obj.maximum, obj.minimum, 0.001, 1)
+        vals2, vecs2 = obj.distinct_eigen_pairs(B, -(obj.minimum), -(obj.maximum), 0.001, 1)
+
+        CN = abs(vals1[0]) /abs(vals2[0])
+        cnReal = abs(obj.realVals[0]) /abs(obj.realVals[obj.dimension -1])
+
+        error = abs(CN - cnReal)/ abs(cnReal)
+
+        writer.writerow({'name': "cn", 'result': str(CN)})
+        writer.writerow({'name': "cnreal", 'result': str(cnReal)})
+        writer.writerow({'name': "error", 'result': str(error)})
+
+def pageRank2(datadir,graphname):
+    with open(datadir + "output/" + graphname + "page.csv", 'wb') as csvfile:
+        fieldnames = ["name", "result"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        obj = EigenPair()
+        G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+        obj = EigenPair()
+        obj.update_parameters(datadir, graphname)
+        start = time.clock()
+        #vals, vecs, counters = obj.distinct_eigen_pairs_dynamic_percents(obj.A, 1.2, 0.9, 1,10)
+        vals, vecs = obj.distinct_eigen_pairs(obj.A, 1, 0.9, 0.001, 10000)
+
+        result1 = obj.find_closest_eigen2(vals,1)
+        pagerank1 = vecs[result1]
+        result2 = obj.find_closest_eigen2(obj.realVals, 1)
+        pagerank2 = obj.realVecs[result2]
+        v1 = pagerank1
+        v2 = pagerank2
+
+        error = 0
+        c = 0
+        for i in range (len(v1)):
+            #if abs(v2[i]) > 0.001 :
+            error += abs(abs(v1[i]) - abs(v2[i])) / abs(v2[i])
+            c+=1
+        error = error/c
+
+
+        M = np.array([v1, v2])
+        similarities = cosine_similarity(M)
+        similarities2 = pairwise_distances(M)
+        similarities3 = manhattan_distances(M)
+        similarities4 = euclidean_distances(M)
+
+
+        writer.writerow({'name': cosine_similarity, 'result': str(similarities[0][1])})
+        writer.writerow({'name': pairwise_distances, 'result': str(similarities2[0][1])})
+        writer.writerow({'name': manhattan_distances, 'result': str(similarities3[0][1])})
+        writer.writerow({'name': euclidean_distances, 'result': str(similarities4[0][1])})
+        writer.writerow({'name': error, 'result': str(error)})
+
+def postProcess(input):
+    temp=[]
+    output=[]
+    for val in input:
+        if val not in temp:
+            temp.append(val)
+    for val in input:
+        index=temp.index(val)
+        output.append(index)
+    return output
+
+def K_means2(input,k):
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(k)
+    output= kmeans.fit_predict(input)
+    kmeans = KMeans(n_clusters=k, random_state=1).fit(input)
+    output= kmeans.labels_
+    output=postProcess(output)
+    return output
+
+def kmeans(points, k, cutoff):
+
+    # Pick out k random points to use as our initial centroids
+    initial = random.sample(points, k)
+
+    # Create k clusters using those centroids
+    # Note: Cluster takes lists, so we wrap each point in a list here.
+    clusters = [Cluster([p]) for p in initial]
+
+    # Loop through the dataset until the clusters stabilize
+    loopCounter = 0
+    while True:
+        # Create a list of lists to hold the points in each cluster
+        lists = [[] for _ in clusters]
+        clusterCount = len(clusters)
+
+        # Start counting loops
+        loopCounter += 1
+        # For every point in the dataset ...
+        for p in points:
+            # Get the distance between that point and the centroid of the first
+            # cluster.
+            smallest_distance = getDistance(p, clusters[0].centroid)
+
+            # Set the cluster this point belongs to
+            clusterIndex = 0
+
+            # For the remainder of the clusters ...
+            for i in range(clusterCount - 1):
+                # calculate the distance of that point to each other cluster's
+                # centroid.
+                distance = getDistance(p, clusters[i+1].centroid)
+                # If it's closer to that cluster's centroid update what we
+                # think the smallest distance is
+                if distance < smallest_distance:
+                    smallest_distance = distance
+                    clusterIndex = i+1
+            # After finding the cluster the smallest distance away
+            # set the point to belong to that cluster
+            lists[clusterIndex].append(p)
+
+        # Set our biggest_shift to zero for this iteration
+        biggest_shift = 0.0
+
+        # For each cluster ...
+        for i in range(clusterCount):
+            # Calculate how far the centroid moved in this iteration
+            shift = clusters[i].update(lists[i])
+            # Keep track of the largest move from all cluster centroid updates
+            biggest_shift = max(biggest_shift, shift)
+
+        # If the centroids have stopped moving much, say we're done!
+        if biggest_shift < cutoff:
+            print ("Converged after %s iterations" % loopCounter)
+            break
+    return clusters
+
+def clustering_evaluation(First,Second):
+    output=[]
+    from sklearn import metrics
+    output.append( metrics.adjusted_rand_score(First, Second))
+    output.append(metrics.adjusted_mutual_info_score(First, Second))
+    output.append(metrics.homogeneity_score(First, Second))
+    output.append(metrics.v_measure_score(First, Second))
+    output.append(metrics.fowlkes_mallows_score(First, Second))
+    output.append(metrics.normalized_mutual_info_score(First, Second))
+    output.append(metrics.f1_score(First, Second,average='micro'))
+    return output
+
+def experimentRandom():
+    ep =0.0001
+    datadir = "../../"
+    graphNames = ["G100","G500","G1000","G2000","G5000","G10000"]
+    for graphname in graphNames:
+        obj = EigenPair()
+        obj.update_parameters(datadir, graphname)
+        obj.eigen_pairs(ep)
+        obj.logRound(datadir, graphname, ep)
+
+
+    print ("finish")
+
+def experimentRandom2():
+    sizes=[100,500,1000,2000,5000,10000]
+    for size in sizes:
+        print(str(size))
+        print("***")
+        obj = EigenPair()
+        ep = 0.0001
+        datadir = "/../"
+        #f = open(datadir  +"output/"+ "random " + str(size) + ".", 'w')
+        A = np.random.uniform(-1, 1, size * size).reshape(size, size)
+        matrix = np.matrix(A)
+        obj.update_parameters(matrix,isMatrix=True)
+        obj.eigen_pairs(ep)
+        # obj.evaluate(ep)
+        obj.logRound2(datadir, str(size), ep)
+
+
+    print ("finish")
+
+
+# static epsilon
+def experiment1(datadir, graphNames):
+    eps = [0.001]
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for ep in eps:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+            obj.update_parameters(G, isDynamic=False)
+            obj.eigen_pairs(ep)
+            obj.log2(datadir, graphname, ep)
+
+    print ("finish")
+
+# dynamic epsilon experiment
+def experiment2(datadir, graphNames, k=-1):
+    eps = [0.001]
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for ep in eps:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+            obj.update_parameters(G)
+            obj.eigen_pairs(ep,k)
+            if k ==-1:
+                obj.log2(datadir, graphname, ep)
+            else:
+                obj.log3(datadir, graphname, ep)
+
+
+
+    print ("finish")
+
+# divideConqure standard
+def experiment3(datadir, graphNames):
+    ep = 0.0001
+    ks = [10, 20]
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for k in ks:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            obj.update_parameters(datadir, graphname)
+            obj.eigen_pairs_divideConqure(ep, k, False)
+            obj.evaluate(ep)
+            obj.log4(datadir, graphname, k)
+
+    print ("finish")
+
+# divideConqure sweeping
+def experiment4(datadir, graphNames,ks):
+    ep = 0.0001
+
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for k in ks:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            obj.update_parameters(datadir, graphname)
+            obj.eigen_pairs_divideConqure(ep, k, True)
+            obj.log5(datadir, graphname, k)
+
+    print ("finish")
+
+def experiment5(datadir, graphNames):
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        obj = EigenPair()
+        obj.update_parameters(datadir, graphname)
+        obj.eigen_pairs_divideConqure(0.0001, 10, True)
+        print("done1")
+        obj.eigen_pairs_QR()
+        print("done2")
+        obj.log6(datadir, graphname, 0.0001)
+
+def experiment6():
+    x = EigenPair()
+    a = np.zeros(shape=(4, 4))
+    a[0][0] = 4
+    a[0][1] = 1
+    a[0][2] = -2
+    a[0][3] = 2
+    a[1][0] = 1
+    a[1][1] = 2
+    a[1][2] = 0
+    a[1][3] = 1
+    a[2][0] = -2
+    a[2][1] = 0
+    a[2][2] = 3
+    a[2][3] = -2
+    a[3][0] = 2
+    a[3][1] = 1
+    a[3][2] = -2
+    a[3][3] = -1
+    v2, w2 =  x.QR_transformation(a)
+    v1, w1 = np.linalg.eig(np.matrix(a))
+    v1, w1 = x.sort_eigens(v1,w1)
+
+    for i in range(len(v1)):
+        M1 = np.array([w1[i], w2[i]])
+        similarity1 = cosine_similarity(M1)
+        x = 0
+
+
+    v1, w1 = x.sort_eigens(v1, w1)
+    b = al.rmatrixqrunpackr(a,4,4)
+    b2, P = x.householder_transformation3(a)
+
+    a2 = np.zeros(shape=(4, 4))
+    for i in range(len(a)):
+        for j in range(len(a)):
+            a2[i][j] = (a[i][j]) / 4
+    v2, w2 = np.linalg.eig(np.matrix(a2))
+    v2, w2 = x.sort_eigens(v2, w2)
+    v3 = [4 * item for item in v2]
+
+    datadir = "/../"
+    G = nx.read_edgelist(datadir + "dataset/" + "karate" + ".txt")
+    T = nx.adjacency_matrix(G)
+    a = T.toarray()
+    a2, P = x.householder_transformation3(a)
+    v1, w1 = np.linalg.eig(np.matrix(a))
+    v1, w1 = x.sort_eigens(v1, w1)
+    v2, w2 = np.linalg.eig(np.matrix(a2))
+    v2, w2 = x.sort_eigens(v2, w2)
+    ws = np.dot(P, np.transpose(w2))
+    ws = np.transpose(ws)
+    ws = ws.tolist()
+
+    for i in range(len(v1)):
+        M1 = np.array([w1[i], ws[i]])
+        similarity1 = cosine_similarity(M1)
+        x = 0
+
+    eps = [0.0001]
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for ep in eps:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            obj.update_parameters(datadir, graphname)
+            obj.eigen_pairs_divideConqure(ep, 4)
+            obj.evaluate(ep)
+            obj.log5(datadir, graphname, ep)
+
+    print ("finish")
+
+def experiment7(datadir, graphNames):
+    eps = [1,0.75,0.5,0.25,0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for ep in eps:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            obj.update_parameters(datadir, graphname)
+            obj.eigen_pairs_Distinct(ep)
+            #obj.evaluate_Distinct(ep)
+            obj.log_distinct(datadir, graphname, ep)
+
+    print ("finish")
+
+
+def experiment8(datadir, graphNames):
+    eps = [0.001]
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+        for ep in eps:
+            print ("****************ep  :" + str(ep))
+            obj = EigenPair()
+            G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
+            matrix = nx.adjacency_matrix(G)
+            A = matrix.toarray()
+            #####
+            B = A
+            d = len(B)
+            for i in range(d):
+                rr = random.randint(0, d - 1)
+                B[i][rr] = 1
+                rr = random.randint(0, d - 1)
+                B[i][rr] = 1
+            A = B
+            xx = np.random.rand(2, 2)
+            xx[0][0] = 1
+            xx[0][1] = -1
+            xx[1][0] = 2
+            xx[1][1] = 1
+            #A = xx
+            obj.update_parameters(A, isSymmetric=False, isMatrix=True)
+            obj.eigen_pairs(ep)
+            obj.evaluateASymmetric(ep)
+            obj.log2(datadir, graphname, ep)
+
+    print ("finish")
+
+def readwrite():
+    datadir = "../../dataset/air.txt"
+    datadir2 = "../../dataset/air2.txt"
+
+    f1 = open(datadir, 'r')
+    f2 = open(datadir2, 'w')
+    for line in f1:
+        x = line.split(" ")
+        f2.write(x[0] + '\t' + x[1] + '\n')
+
+    f1.close()
+    f2.close()
+
+def fivepercentresults(datadir, graphNames):
+    ep = 0.001
+    percent = 100
+    for graphname in graphNames:
+        print ("****************graphname:  " + graphname)
+       # print ("****************ep  :" + str(ep))
+        obj = EigenPair()
+        obj.update_parameters(datadir, graphname)
+        obj.eigen_pairs_dynamic_percents(percent)
+        obj.log_distinct_Percents(datadir, graphname, ep, percent)
+
+    print ("finish")
+
+def pageRank(G, s = .85, maxerr = .0001):
+    n = G.shape[0]
+    # transform G into markov matrix A
+    A = csc_matrix(G,dtype=np.float)
+    rsums = np.array(A.sum(1))[:,0]
+    ri, ci = A.nonzero()
+    A.data /= rsums[ri]
+    # bool array of sink states
+    sink = rsums==0
+    #    Compute pagerank r until we converge
+    ro, r = np.zeros(n), np.ones(n)
+    while np.sum(np.abs(r-ro)) > maxerr:
+        ro = r.copy()
+# calculate each pagerank at a time
+    for i in range(0,n):
+# inlinks of state i
+        Ai = np.array(A[:,i].todense())[:,0]
+# account for sink states
+        Di = sink / float(n)
+# account for teleportation to state i
+        Ei = np.ones(n) / float(n)
+        r[i] = ro.dot( Ai*s + Di*s + Ei*(1-s) )
+# return normalized pagerank
+    return r/float(sum(r))
+
+
+
+def modularity_com1(G):
+    output = nx.Graph()
+    nodes = []
+    dic = {}
+    counter = 0
+    for node in G.nodes():
+        nodes.append(counter)
+        dic.update({node: counter})
+        counter += 1
+    output.add_nodes_from(nodes)
+    for edge in G.edges():
+        output.add_edge(dic[edge[0]], dic[edge[1]])
+    A = nx.adjacency_matrix(output)
+    A = A.toarray()
+    group = output.nodes()
+    B, group1, group2 = modularity2(A, group)
+    dic = dict(zip(range(len(output.nodes())), output.nodes()))
+    r = modularity3(B, group, group1, group2, dic)
+    x = r
+
+
+
+def modularity_computation(G):
+    output = nx.Graph()
+    nodes = []
+    dict = {}
+    counter = 0
+    for node in G.nodes():
+        nodes.append(counter)
+        dict.update({node: counter})
+        counter += 1
+    output.add_nodes_from(nodes)
+    for edge in G.edges():
+        output.add_edge(dict[edge[0]], dict[edge[1]])
+    A = nx.adjacency_matrix(output)
+    A = A.toarray()
+    group = output.nodes()
+    labels = [0]*len(group)
+    leading1 = modularity_computation_array(A, group, labels)
+    groups =[]
+
+    x = 0
+
+def modularity5(B, group, dic):
+    n = len(group)
+    B1 = np.zeros(shape=(n, n))
+    dic2 = {}
+    ii=-1
+    for i in group:
+        ii+=1
+        jj=-1
+        dic2.update({i:ii})
+        for j in group:
+            jj+=1
+            B1[ii][jj] = B[dic[i]][dic[j]]
+    return B1, dic2
+
+def modularity3(B, group, group1, group2, dic):
+    final_result =[]
+    result = []
+    n = len(group)
+    B1 = np.zeros(shape=(n, n))
+    ii=-1
+    for i in group:
+        sigma = 0
+        ii +=1
+        for k in group:
+            sigma += B[dic[i]][dic[k]]
+        jj = -1
+        for j in group:
+            jj+=1
+            if (i in group1 and j in group1) or (i in group2 and j in group2):
+                delta = -1
+            else:
+                delta = 1
+            B1[ii][jj] = B[dic[i]][dic[j]] - (delta*sigma)
+
+    v, w = np.linalg.eig(B1)
+    leading = w[0]
+
+    group11 = []
+    group12 = []
+    for i in group1:
+        if leading[dic[i]] < 0:
+            group11.append(i)
+        else:
+            group12.append(i)
+
+    if len(group11)>0:
+        if len(group12)>0:
+            B2, dic2 = modularity5(B1, group1, dic)
+            result.append(modularity3(B2, group1, group11, group12, dic2))
+        else:
+            result.append(group11)
+            final_result.append(group11)
+    else:
+        result.append(group12)
+        final_result.append(group12)
+
+    group21 = []
+    group22 = []
+    for i in group2:
+        if leading[dic[i]] < 0:
+            group21.append(i)
+        else:
+            group22.append(i)
+
+    if len(group21)>0:
+        if len(group22)>0:
+            B2, dic2 = modularity5(B1, group2, dic)
+            result.append(modularity3(B1, group2, group21, group22,dic2))
+        else:
+            result.append(group21)
+            final_result.append(group21)
+
+    else:
+        result.append(group22)
+        final_result.append(group22)
+
+
+    return result
+
+
+
+def modularity2(A, group):
+    n = len(A)
+    B = np.zeros(shape=(n, n))
+    nodes = range(n)
+    degres = [0] * n
+    for i in range(n):
+        degres[i] = sum(A[i])
+    m = sum(degres)
+
+    for i in nodes:
+        for j in nodes:
+            B[i][j] = A[i][j] - ((degres[i]) * (degres[j])) / float(m)
+
+    v, w = np.linalg.eig(B)
+    leading = w[0]
+
+    group1 = []
+    group2 = []
+    for i in group:
+        if leading[i] < 0:
+            group1.append(i)
+        else:
+            group2.append(i)
+
+    return  B, group1, group2
+
+
+def modularity4(B, group):
+    v, w = np.linalg.eig(B)
+    leading = w[0]
+
+    group1 = []
+    group2 = []
+    for i in group:
+        if leading[i] < 0:
+            group1.append(i)
+        else:
+            group2.append(i)
+    return group1, group2
+
+
+
+
+
+
+def modularity_matrix(A):
+    n = len(A)
+    B = np.zeros(shape=(n, n))
+
+    nodes = range(n)
+    degres = [0]*n
+    for i in range(n):
+        degres[i] = sum(A[i])
+    m = sum(degres)
+
+    for i in nodes:
+        for j in nodes:
+            B[i][j] = A[i][j] - ((degres[i]) * (degres[j])) / float(m)
+
+    return B
+
+
+#### test asym
+def testnegative():
+    a1 = np.random.rand(3, 3)
+    a1[0][0] = 2
+    a1[0][1] = -0.1
+    a1[0][2] = 0.1
+    a1[1][0] = -0.1
+    a1[1][1] = 2
+    a1[1][2] = 0.1
+    a1[2][0] = 0.1
+    a1[2][1] = 0.1
+    a1[2][2] = 2
+    b1 = [2,3,5]
+    result1 = LA.solve(a1, b1)
+
+    a2 = np.random.rand(5, 5)
+    a2[0][0] = 2
+    a2[0][1] = 0
+    a2[0][2] = 0.1
+    a2[0][3] = 0
+    a2[0][4] = 0.1
+
+    a2[1][0] = 0
+    a2[1][1] = 2
+    a2[1][2] = 0.1
+    a2[1][3] = 0.1
+    a2[1][4] = 0
+
+    a2[2][0] = 0.1
+    a2[2][1] = 0.1
+    a2[2][2] = 2
+    a2[2][3] = 0
+    a2[2][4] = 0
+
+    a2[3][0] = 1
+    a2[3][1] = 0
+    a2[3][2] = 0
+    a2[3][3] = 1
+    a2[3][4] = 0
+
+    a2[4][0] = 0
+    a2[4][1] = 1
+    a2[4][2] = 0
+    a2[4][3] = 0
+    a2[4][4] = 1
+
+    b2 = [2,3,5,0,0]
+    result2 = LA.solve(a2, b2)
+    x = 0
+    a4 = []
+    for i in range(2):
+        a4.append([])
+        for j in range(2):
+            a4[i].append([])
+    a4[0][0] = 1.1 + 1j * (-1)
+    a4[0][1] = 2 + 1j * (0)
+    a4[1][0] = -1 + 1j * (0)
+    a4[1][1] = -2 + 1j * (-1)
+
+    b4 = [2 + 1j * (0), 3 + 1j * (0)]  # , 5 + 1j * (0)]
+    result4 = LA.solve(a4, b4)
+
+    x=0
+    a3 = []
+    for i in range (4):
+        a3.append([])
+        for j in range(4):
+            a3[i].append([])
+    a3[0][0] = 1.1- 1j * (0)
+    a3[0][1] = 2 + 1j * (0)
+    a3[1][0] = -1 + 1j * (0)
+    a3[1][1] = -2 + 1j * (0)
+
+    a3[0][2] = 0 + 1j * (-1)
+    a3[0][3] = 0 + 1j * (0)
+    a3[1][2] = 0 + 1j * (0)
+    a3[1][3] = 0 + 1j * (-1)
+
+    a3[2][0] = 0 + 1j * (-1)
+    a3[2][1] = 0 + 1j * (0)
+    a3[3][0] = 0 + 1j * (0)
+    a3[3][1] = 0 + 1j * (-1)
+
+    a3[2][2] = 1.1- 1j * (0)
+    a3[2][3] = 2 + 1j * (0)
+    a3[3][2] = -1 + 1j * (0)
+    a3[3][3] = -2 + 1j * (0)
+
+    b3 = [2 + 1j * (0), 3 + 1j * (0), 0 + 1j * (0), 0 + 1j * (0)]#, 5 + 1j * (0)]
+    result3 = LA.solve(a3, b3)
+
+
+
+    x=0
+
+    a5 = []
+    for i in range (4):
+        a5.append([])
+        for j in range(4):
+            a5[i].append([])
+    a5[0][0] = 1.1- 1j * (0)
+    a5[0][1] = 2 + 1j * (0)
+    a5[1][0] = -1 + 1j * (0)
+    a5[1][1] = -2 + 1j * (0)
+
+    a5[0][2] = -1 + 1j * (0)
+    a5[0][3] = 0 + 1j * (0)
+    a5[1][2] = 0 + 1j * (0)
+    a5[1][3] = -1 + 1j * (0)
+
+    a5[2][0] = -1 + 1j * (0)
+    a5[2][1] = 0 + 1j * (0)
+    a5[3][0] = 0 + 1j * (0)
+    a5[3][1] = -1 + 1j * (0)
+
+    a5[2][2] = 1.1- 1j * (0)
+    a5[2][3] = 2 + 1j * (0)
+    a5[3][2] = -1 + 1j * (0)
+    a5[3][3] = -2 + 1j * (0)
+
+    b5 = [2 + 1j * (0), 3 + 1j * (0), 0 + 1j * (0), 0 + 1j * (0)]#, 5 + 1j * (0)]
+    result5 = LA.solve(a5, b5)
+    x=0
+
+    a6 = []
+    for i in range (4):
+        a6.append([])
+        for j in range(4):
+            a6[i].append([])
+    a6[0][0] = 1.1
+    a6[0][1] = 2
+    a6[1][0] = -1
+    a6[1][1] = -2
+
+    a6[0][2] = 1
+    a6[0][3] = 0
+    a6[1][2] = 0
+    a6[1][3] = 1
+
+    a6[2][0] = -1
+    a6[2][1] = 0
+    a6[3][0] = 0
+    a6[3][1] = -1
+
+    a6[2][2] = 1.1
+    a6[2][3] = 2
+    a6[3][2] = -1
+    a6[3][3] = -2
+
+    b6 = [2 , 3 , 0 , 0 ]#, 5 + 1j * (0)]
+    result6 = LA.solve(a6, b6)
+    x=0
+
+
+    x1 =  np.dot(a4, result4)
+    result44 = [result6[0]+ 1j * (result6[2]),result6[1]+ 1j * (result6[3])]
+    x2 = np.dot(a4, result44)
+    result66 = [result4[0].real, result4[1].real,result4[0].imag , result4[1].imag]
+    x3 = np.dot(a6,result66)
+    c=0
+
+def testtttt():
+    graphs = []
+    a1 = np.random.rand(2, 2)
+    a2 = np.random.rand(2, 2)
+
+    a1[0][0] = 1
+    a1[0][1] = -1
+    a1[1][0] = 2
+    a1[1][1] = 1
+
+    a2[0][0] = 3
+    a2[0][1] = -2
+    a2[1][0] = 4
+    a2[1][1] = -1
+
+    a3 = np.random.rand(3, 3)
+    a3[0][0] = 1
+    a3[0][1] = -3
+    a3[0][2] = 3
+    a3[1][0] = 3
+    a3[1][1] = -5
+    a3[1][2] = 3
+    a3[2][0] = 6
+    a3[2][1] = -6
+    a3[2][2] = 4
+
+    a4 = np.random.rand(3, 3)
+    a4[0][0] = 1
+    a4[0][1] = -2
+    a4[0][2] = 1.5
+    a4[1][0] = 12
+    a4[1][1] = 6
+    a4[1][2] = 7
+    a4[2][0] = -2
+    a4[2][1] = 4
+    a4[2][2] = 9
+
+    a5 = np.random.rand(3, 3)
+    a5[0][0] = 0.1734
+    a5[0][1] = 0.2198
+    a5[0][2] = 0.3702
+    a5[1][0] = 0.3900
+    a5[1][1] = -0.2469
+    a5[1][2] = -0.1169
+    a5[2][0] = -0.8026
+    a5[2][1] = 0.1421
+    a4[2][2] = 0.6215
+
+    a6 = a5.transpose()
+
+    a7 = np.random.rand(3, 3)
+    a7[0][0] = 0.7298
+    a7[0][1] = -0.2298
+    a7[0][2] = -0.2941
+    a7[1][0] = -0.2638
+    a7[1][1] = -0.2377
+    a7[1][2] = -0.1620
+    a7[2][0] = -0.4733
+    a7[2][1] = 0.1420
+    a7[2][2] = 0.6513
+
+    a8 = np.random.rand(3, 3)
+    a8[0][0] = 7.0385
+    a8[0][1] = -1.7960
+    a8[0][2] = -4.4595
+    a8[1][0] = -1.7960
+    a8[1][1] = 1.0003
+    a8[1][2] = 1.0316
+    a8[2][0] = -4.4595
+    a8[2][1] = 1.0316
+    a8[2][2] = 3.9720
+
+    # x=y
+    a9 = np.random.rand(4, 4)
+    a9[0][0] = 2
+    a9[0][1] = 9
+    a9[0][2] = 0
+    a9[0][3] = 2
+
+    a9[1][0] = -1
+    a9[1][1] = 2
+    a9[1][2] = 1
+    a9[1][3] = 0
+
+    a9[2][0] = 0
+    a9[2][1] = 0
+    a9[2][2] = 3
+    a9[2][3] = 0
+
+    a9[3][0] = 0
+    a9[3][1] = 0
+    a9[3][2] = 1
+    a9[3][3] = -1
+
+    a10 = np.random.rand(2, 2)
+    a10[0][0] = 1
+    a10[0][1] = -1
+    a10[1][0] = 2
+    a10[1][1] = -1
+    # x = xx
+    a10[0][0] = 3
+    a10[0][1] = -2
+    a10[1][0] = 4
+    a10[1][1] = -1
+
+    a11 = np.random.rand(2, 2)
+    a11[0][0] = 1
+    a11[0][1] = -1
+    a11[1][0] = 2
+    a11[1][1] = 1
+
+    graphs.append(a1)
+    graphs.append(a2)
+    graphs.append(a3)
+    graphs.append(a4)
+    graphs.append(a5)
+    graphs.append(a6)
+    graphs.append(a7)
+    graphs.append(a8)
+    graphs.append(a9)
+    graphs.append(a10)
+    graphs.append(a11)
+
+    for A in graphs:
+        size = len(A)
+        B = np.random.uniform(-1, 1, size * size).reshape(size, size)
+        for i in range(len(A)):
+            B[i + size][i] = A[i][i].imag
+            B[i][i + size] = A[i][i].imag
+            for j in range(len(A)):
+                B[i][j] = A[i][j].real
+                B[i + size][j + size] = A[i][j].real
+        v1, w1 = np.linalg.eig(np.matrix(A))
+        v1, w1 = np.linalg.eig(np.matrix())
+
+    # matrix = np.matrix(B)
+
+
+
+    v2, w2 = np.linalg.eig(np.matrix(a2))
+    v3, w3 = np.linalg.eig(np.matrix(a3))
+    v4, w4 = np.linalg.eig(np.matrix(a4))
+    v5, w5 = np.linalg.eig(np.matrix(a4))
+    v6, w6 = np.linalg.eig(np.matrix(a4))
+    v7, w7 = np.linalg.eig(np.matrix(a4))
+    v8, w8 = np.linalg.eig(np.matrix(a4))
+    v9, w9 = np.linalg.eig(np.matrix(a4))
+    v10, w10 = np.linalg.eig(np.matrix(a4))
+    v11, w11 = np.linalg.eig(np.matrix(a4))
+
+
+
+def convert_gml_txt(datadir,graphNames):
+    for graphname in graphNames:
+        with open(datadir + "dataset/" + graphname + ".txt", 'w') as text_file:
+            G = nx.read_gml(datadir + "dataset/gml/" + graphname + ".gml")
+            matrix = nx.adjacency_matrix(G)
+            A = matrix.toarray()
+            for item in G.edges():
+                text_file.write(str(item[0])+"\t" +str(item[1])+"\n")
+    return 0
+
+
+
+def get_laplacian_matrix(datadir, graphNames):
+    for graphname in graphNames:
+        outfile= datadir +"laplace/"+ graphname + "laplace.txt"
+        G = nx.read_edgelist(datadir+"dataset/" + graphname + ".txt")
+        L= nx.laplacian_matrix(G, nodelist=None, weight='weight')
+        A= L.toarray()
+        N= np.matrix(A)
+        np.savetxt(outfile, N, fmt='%d')
+    return 0
+
+def get_adjacency_matrix(datadir, graphNames):
+    for graphname in graphNames:
+        outfile= datadir +"adjacency/"+ graphname + ".txt"
+        G = nx.read_edgelist(datadir+"dataset/" + graphname + ".txt")
+        matrix = nx.adjacency_matrix(G)
+        A = matrix.toarray()
+        N = np.matrix(A)
+        np.savetxt(outfile, N, fmt='%d')
+    return 0
