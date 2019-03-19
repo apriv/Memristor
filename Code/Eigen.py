@@ -1,7 +1,7 @@
 from numpy import *
 import networkx as nx
 import EigenPair
-
+import time
 
 
 
@@ -20,10 +20,13 @@ def Eigen(G, ep = 0.001, dir = ""):
 
 
 if __name__ == '__main__':
-    datadir = "/Users/sara 1/Documents/PHD/git/Memristor/dataset/"
-    graphNames = ["G100", "G200", "G500", "G1000", "G2000", "G5000", "G10000", "G25000", "G100000"]
+    datadir = "../dataset/"
+    graphNames = ["G100", "G200", "G500", "G1000"]
     for graphname in graphNames:
         print (graphname)
         G = nx.read_edgelist(datadir+ graphname + ".txt")
+        before = time.time()
         V, W = Eigen(G)
+        after = time.time()
+        print(before-after)
         x=0

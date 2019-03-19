@@ -1,5 +1,8 @@
 import numpy as np
 from math import *
+import networkx as nx
+import time
+import EigenPair
 
 def solve2(A, b, n):
     A = np.copy(A)
@@ -72,7 +75,8 @@ def QR(A, n):
         Q = np.dot(H[n-3-i],Q)
     return Q,R
 
-def eigen(A, n):
+def eigen(A):
+    n = len(A)
     R = np.copy(A)
     R = R.astype(float)
     H = []
@@ -125,18 +129,20 @@ def eigen(A, n):
         retx.append(x)
     return retl, retx
 
-A = [[3, 8, 9, 7],[6, 4, -1, 8],[9,1,7,4],[3,5,6,7]]
-A = np.random.rand(5,5)
-a = np.copy(A)
-b,c = eigen(A, 5)
-B,C = np.linalg.eig(a)
-print(b)
-print(B)
-for i in range(5):
-    print("\n")
-    B = b[i]
-    C = c[i]
-    print(B*np.array(C))
-    print(np.dot(A, C))
-    print("\n")
-
+if __name__ == '__main__':
+    datadir = "../dataset/"
+    graphNames = ["G100", "G200", "G500", "G1000"]
+    for graphname in graphNames:
+        print (graphname)
+        G = nx.read_edgelist(datadir+ graphname + ".txt")
+        before = time.time()
+        obj = EigenPair.EigenPair()
+        obj.update_parameters(G, isDynamic=True)
+        G = obj.A
+        V, W = eigen(G)
+        print(V)
+        V, M = np.linalg.eig(G)
+        print(V)
+        after = time.time()
+        print(before-after)
+        x=0
