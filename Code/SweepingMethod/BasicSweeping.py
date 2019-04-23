@@ -10,7 +10,7 @@ from math import sqrt
 import networkx as nx
 import numpy as np
 import math
-import metis
+#import metis
 import csv
 import time
 
@@ -25,9 +25,9 @@ def eigen_pairs(matrix, k, ep, max1, min, v):
     return v3, w3
 
 def eigen_values_computation(input, k, ep, max1, min):
-    print("min = " +str(min))
-    print("max = " + str(max1))
-    print("len = " + str(len(input)))
+    #print("min = " +str(min))
+    #print("max = " + str(max1))
+    #print("len = " + str(len(input)))
     eigvec=[]
     from numpy import linalg as LA
     A = np.mat(input)
@@ -188,7 +188,7 @@ def eigenvector_computation(input,xs,ll):
     lens=len(eigenvalues)
     while(True):
         if (eigenvalues[i] not in values):
-            print("counter = " + str(k))
+            #print("counter = " + str(k))
             item = eigenvalues[i].real + 0.0001
             if i < len(eigenvalues) - 1 and (eigenvalues[i].real == eigenvalues[i + 1].real):
                 a,b,c =eigen_values_computation(input, 1, 0.0001, eigenvalues[i].real + 0.1 , min)
@@ -560,12 +560,13 @@ def  eigen_pairs_perturbation(datadir, graphNames):
 
 
 if __name__ == '__main__':
-    datadir = "/../"
+    datadir = "../../"
     graphNames = ["karate", "dolphins", "lesmis", "squeak", "CA-GrQc", "robots", "fb", "lesmis", "celegansneural",
                   "power", "adjnoun", "polblogs", "polbooks", "netscience", "as-22july06", "G100", "G200", "G500",
                   "G1000", "G2000"]
-    graphNames = ["squeak"]
+    graphNames = ["G100"]
     print ("start")
+    time_start = time.time()
     for graphname in graphNames:
         G = nx.read_edgelist(datadir + "dataset/" + graphname + ".txt")
         print ("*********************dataset =" + graphname)
@@ -581,3 +582,5 @@ if __name__ == '__main__':
         max1 = v2[0]
         min = v2[len(v2)-1]
         v, w = eigen_pairs(matrix, len(v1) , ep, max1, min, v2)
+    time_end = time.time()
+    print('time cost', time_end - time_start, 's')

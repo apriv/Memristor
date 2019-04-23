@@ -1,6 +1,7 @@
 from numpy import *
 import networkx as nx
 import EigenPair
+import time
 
 
 
@@ -66,8 +67,14 @@ def EigenAsym():
 if __name__ == '__main__':
     datadir = "../../dataset/"
     graphNames = [ "karate","G100", "G200", "G500", "G1000", "G2000", "G5000", "G10000", "G25000", "G100000"]
+    graphNames = [ "karate","G100", "G200", "G500", "G1000", "G2000", "G5000"]
+
     for graphname in graphNames:
+        time_start = time.time()
         print (graphname)
         G = nx.read_edgelist(datadir+ graphname + ".txt")
         V, W = Eigen(G)
         x=0
+        time_end = time.time()
+        print('time cost', time_end - time_start, 's')
+

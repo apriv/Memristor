@@ -93,11 +93,24 @@ def sort_eigens(v1, w1):
 
 
 if __name__ == '__main__':
+    # find leading ev
+    print(power_iteration(np.array([[2, 0, 0], [1, 2, 1], [-1, 0, 1]]), 10))
+
+    # find all ev
+    V, _ = shifted_power_iteration(np.array([[2, 0, 0], [1, 2, 1], [-1, 0, 1]]), 20, 3)
+    print(V)
+
+    '''
     datadir = "../../dataset/"
     graphNames = [ "karate","G100", "G200", "G500", "G1000", "G2000", "G5000", "G10000", "G25000", "G100000"]
+    graphNames = [ "karate","G100", "G200", "G500", "G1000"]
     for graphname in graphNames:
+        time_start = time.time()
         print (graphname)
         G = nx.read_edgelist(datadir+ graphname + ".txt")
         V, W = eigen_power(G)
-
         x=0
+        time_end = time.time()
+        print('time cost', time_end - time_start, 's')
+    '''
+
