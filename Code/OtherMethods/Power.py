@@ -38,33 +38,37 @@ def power_iteration(A, num_simulations):
     # Is orthogonal to the eigenvector
     b_k = np.random.rand(A.shape[1])
 
-    for _ in range(num_simulations):
+    for i in range(num_simulations):
         # calculate the matrix-by-vector product Ab
         b_k1 = np.dot(A, b_k)
 
         # calculate the norm
-        b_k1_norm = np.linalg.norm(b_k1)
+        b_k1_norm = np.linalg.norm(b_k1)  # value
 
         # re normalize the vector
-        b_k = b_k1 / b_k1_norm
+        b_k = b_k1 / b_k1_norm  # vector
 
     return b_k, b_k1_norm
 
-def shifted_power_iteration(A,num_simulations,num_eigs):
-    vs=[]
-    ws=[]
+
+def shifted_power_iteration(A, num_simulations,num_eigs):
+    vs = []
+    ws = []
+    A = A
 
     for _ in range(num_eigs):
+        print(A)
         v, w = power_iteration(A, num_simulations)
+        print(v, w)
         vs.append(w)
         ws.append(v)
         v = np.array([v])
-        B = np.dot(np.transpose(v),v)
+        B = np.dot(np.transpose(v), v)
 
         v_norm = np.linalg.norm(v)
         c= w / (v_norm*v_norm)
         C = c*B
-        A = A- C
+        A = A - C
     return vs, ws
 
 
@@ -75,7 +79,7 @@ def eigen_power(G):
     return V, W
 
 
-##sort calculared eigens
+# sort calculated eigens
 def sort_eigens(v1, w1):
     dic = dict(zip(v1, range(len(v1))))
     v1 = sorted(v1, reverse=True)
@@ -94,10 +98,13 @@ def sort_eigens(v1, w1):
 
 if __name__ == '__main__':
     # find leading ev
-    print(power_iteration(np.array([[2, 0, 0], [1, 2, 1], [-1, 0, 1]]), 10))
+    #print(power_iteration(np.array([[1, -3, 2], [-3, -8, 2], [2, 2, 3]]), 5))
 
     # find all ev
-    V, _ = shifted_power_iteration(np.array([[2, 0, 0], [1, 2, 1], [-1, 0, 1]]), 20, 3)
+    #V, _ = shifted_power_iteration(np.array([[1, 2, 3], [2, 4, 5], [3, 4, 6]]) , 10, 3)
+    #print(V)
+
+    V, _ = shifted_power_iteration(np.array([[4, 5], [6, 5]]), 10, 2)
     print(V)
 
     '''
